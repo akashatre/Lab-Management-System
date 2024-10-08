@@ -32,7 +32,7 @@
                 </select>
 
                 <label for="shift">Shift:</label>
-                <select id="shift" name="shift" required>
+                <select id="shift" name="shift">
                     <option value="morning">7 AM - 3 PM</option>
                     <option value="evening">3 PM - 11 PM</option>
                 </select>
@@ -71,6 +71,8 @@
                     <!-- Students will be added here dynamically -->
                 </tbody>
             </table>
+            <button id="reminderButton">Check Payment Reminders</button>
+            <ul id="reminderList"></ul>
         </section>
     </main>
 
@@ -85,6 +87,8 @@
         const availableSeatsDisplay = document.getElementById('availableSeats');
         const availableSeatsList = document.getElementById('availableSeatsList');
         const viewAvailableSeatsButton = document.getElementById('viewAvailableSeats');
+        const reminderButton = document.getElementById('reminderButton');
+        const reminderList = document.getElementById('reminderList');
 
         let assignedSeats = 0;
         const totalSeats = 80;
@@ -122,35 +126,6 @@
                 });
                 deleteCell.appendChild(deleteButton);
             });
-
-            // Check if any student needs a payment reminder
-            checkForReminders();
-        }
-
-        // Check if students are due for payment reminders
-        function checkForReminders() {
-            const today = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
-            students.forEach(student => {
-                const admissionDate = new Date(student.date);
-                const nextPaymentDate = new Date(admissionDate);
-                nextPaymentDate.setMonth(admissionDate.getMonth() + 1); // One month later
-                const nextPaymentDateString = nextPaymentDate.toISOString().split('T')[0];
-
-                if (today === nextPaymentDateString) {
-                    alert(`Reminder: Student ${student.name} (Seat ${student.seat}) is due for payment on ${today}.`);
-                }
-            });
-        }
-
-        // Delete student function
-        function deleteStudent(index) {
-            const seatNumber = students[index].seat;
-            students.splice(index, 1); // Remove the student from the array
-            seats.push(seatNumber); // Add the seat back to available seats
-            localStorage.setItem('students', JSON.stringify(students));
-            localStorage.setItem('seats', JSON.stringify(seats));
-            updateDisplay(); // Refresh display
-            alert('Student record deleted successfully!');
         }
 
         // Show available seats
@@ -163,6 +138,40 @@
             });
         });
 
+        // Check for payment reminders
+        reminderButton.addEventListener('click', () => {
+            reminderList.innerHTML = ''; // Clear previous reminders
+            const today = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+
+            students.forEach(student => {
+                const admissionDate = new Date(student.date);
+                const nextPaymentDate = new Date(admissionDate);
+                nextPaymentDate.setMonth(admissionDate.getMonth() + 1); // One month later
+                const nextPaymentDateString = nextPaymentDate.toISOString().split('T')[0];
+
+                if (today === nextPaymentDateString) {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `Payment reminder for ${student.name} (Seat ${student.seat}) due on ${today}.`;
+                    reminderList.appendChild(listItem);
+                }
+            });
+
+            if (reminderList.innerHTML === '') {
+                reminderList.innerHTML = '<li>No payment reminders due today.</li>';
+            }
+        });
+
+        // Delete student function
+        function deleteStudent(index) {
+            const seatNumber = students[index].seat;
+            students.splice(index, 1); // Remove the student from the array
+            seats.push(seatNumber); // Add the seat back to available seats
+            localStorage.setItem('students', JSON.stringify(students));
+            localStorage.setItem('seats', JSON.stringify(seats));
+            updateDisplay(); // Refresh display
+            alert('Student record deleted successfully!');
+        }
+
         // Handle seat assignment form submission
         form.addEventListener('submit', (event) => {
             event.preventDefault();
@@ -171,7 +180,13 @@
             const mobile = document.getElementById('mobile').value;
             const seat = parseInt(document.getElementById('seat').value);
             const course = document.getElementById('course').value;
-            const shift = document.getElementById('shift').value; // Manually select shift
+            let shift = document.getElementById('shift').value; // Get the shift value
+
+            // Automatically set shift for full-time students
+            if (course === 'full-time') {
+                shift = 'Full-time (7 AM - 11 PM)'; // Set the correct shift for full-time students
+            }
+
             const date = document.getElementById('date').value; // Get date from input
 
             // Add student to the list and remove seat from available seats
