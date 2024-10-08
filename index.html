@@ -31,8 +31,8 @@
                     <option value="half-time">Half-time (₹500)</option>
                 </select>
 
-                <label for="shift" id="shiftLabel" style="display: none;">Shift:</label>
-                <select id="shift" name="shift" style="display: none;">
+                <label for="shift">Shift:</label>
+                <select id="shift" name="shift" required>
                     <option value="morning">7 AM - 3 PM</option>
                     <option value="evening">3 PM - 11 PM</option>
                 </select>
@@ -85,25 +85,11 @@
         const availableSeatsDisplay = document.getElementById('availableSeats');
         const availableSeatsList = document.getElementById('availableSeatsList');
         const viewAvailableSeatsButton = document.getElementById('viewAvailableSeats');
-        const courseSelect = document.getElementById('course');
-        const shiftSelect = document.getElementById('shift');
-        const shiftLabel = document.getElementById('shiftLabel');
 
         let assignedSeats = 0;
         const totalSeats = 80;
         let students = JSON.parse(localStorage.getItem('students')) || [];
         let seats = JSON.parse(localStorage.getItem('seats')) || Array.from({ length: totalSeats }, (_, i) => i + 1); // Create seat numbers 1-80
-
-        // Show shift selection only for half-time students
-        courseSelect.addEventListener('change', function() {
-            if (this.value === 'half-time') {
-                shiftLabel.style.display = 'block';
-                shiftSelect.style.display = 'block';
-            } else {
-                shiftLabel.style.display = 'none';
-                shiftSelect.style.display = 'none';
-            }
-        });
 
         // Update seat count and student table on page load
         function updateDisplay() {
@@ -119,7 +105,7 @@
                 row.insertCell(1).innerText = student.mobile;
                 row.insertCell(2).innerText = student.seat;
                 row.insertCell(3).innerText = student.course.charAt(0).toUpperCase() + student.course.slice(1);
-                row.insertCell(4).innerText = student.course === 'half-time' ? student.shift : '-'; // Display shift for half-time students
+                row.insertCell(4).innerText = student.shift; // Show the manually entered shift
                 row.insertCell(5).innerText = student.date;
 
                 // Create Delete button
@@ -185,7 +171,7 @@
             const mobile = document.getElementById('mobile').value;
             const seat = parseInt(document.getElementById('seat').value);
             const course = document.getElementById('course').value;
-            const shift = course === 'half-time' ? document.getElementById('shift').value : null; // Get shift for half-time students
+            const shift = document.getElementById('shift').value; // Manually select shift
             const date = document.getElementById('date').value; // Get date from input
 
             // Add student to the list and remove seat from available seats
