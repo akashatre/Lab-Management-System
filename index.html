@@ -22,13 +22,19 @@
                 <label for="mobile">Mobile Number:</label>
                 <input type="tel" id="mobile" name="mobile" required>
 
-                <label for="seat">Seat Number (1-150):</label>
-                <input type="number" id="seat" name="seat" min="1" max="150" required>
+                <label for="seat">Seat Number (1-80):</label>
+                <input type="number" id="seat" name="seat" min="1" max="80" required>
 
                 <label for="course">Course Type:</label>
                 <select id="course" name="course" required>
                     <option value="full-time">Full-time (₹800)</option>
-                    <option value="part-time">Part-time (₹500)</option>
+                    <option value="half-time">Half-time (₹500)</option>
+                </select>
+
+                <label for="shift" id="shiftLabel" style="display: none;">Shift:</label>
+                <select id="shift" name="shift" style="display: none;">
+                    <option value="morning">7 AM - 3 PM</option>
+                    <option value="evening">3 PM - 11 PM</option>
                 </select>
 
                 <label for="date">Date of Admission:</label>
@@ -40,9 +46,9 @@
 
         <section class="status-section">
             <h2>Seat Availability</h2>
-            <p>Total Seats: 150</p>
+            <p>Total Seats: 80</p>
             <p>Seats Assigned: <span id="assignedSeats">0</span></p>
-            <p>Seats Available: <span id="availableSeats">150</span></p>
+            <p>Seats Available: <span id="availableSeats">80</span></p>
             <button id="viewAvailableSeats">View Available Seats</button>
             <ul id="availableSeatsList"></ul>
         </section>
@@ -56,6 +62,7 @@
                         <th>Mobile Number</th>
                         <th>Seat Number</th>
                         <th>Course Type</th>
+                        <th>Shift</th>
                         <th>Date of Admission</th>
                         <th>Action</th>
                     </tr>
@@ -78,11 +85,25 @@
         const availableSeatsDisplay = document.getElementById('availableSeats');
         const availableSeatsList = document.getElementById('availableSeatsList');
         const viewAvailableSeatsButton = document.getElementById('viewAvailableSeats');
+        const courseSelect = document.getElementById('course');
+        const shiftSelect = document.getElementById('shift');
+        const shiftLabel = document.getElementById('shiftLabel');
 
         let assignedSeats = 0;
-        const totalSeats = 150;
+        const totalSeats = 80;
         let students = JSON.parse(localStorage.getItem('students')) || [];
-        let seats = JSON.parse(localStorage.getItem('seats')) || Array.from({ length: totalSeats }, (_, i) => i + 1); // Create seat numbers 1-150
+        let seats = JSON.parse(localStorage.getItem('seats')) || Array.from({ length: totalSeats }, (_, i) => i + 1); // Create seat numbers 1-80
+
+        // Show shift selection only for half-time students
+        courseSelect.addEventListener('change', function() {
+            if (this.value === 'half-time') {
+                shiftLabel.style.display = 'block';
+                shiftSelect.style.display = 'block';
+            } else {
+                shiftLabel.style.display = 'none';
+                shiftSelect.style.display = 'none';
+            }
+        });
 
         // Update seat count and student table on page load
         function updateDisplay() {
@@ -98,10 +119,11 @@
                 row.insertCell(1).innerText = student.mobile;
                 row.insertCell(2).innerText = student.seat;
                 row.insertCell(3).innerText = student.course.charAt(0).toUpperCase() + student.course.slice(1);
-                row.insertCell(4).innerText = student.date; // Display date of admission
-                
+                row.insertCell(4).innerText = student.course === 'half-time' ? student.shift : '-'; // Display shift for half-time students
+                row.insertCell(5).innerText = student.date;
+
                 // Create Delete button
-                const deleteCell = row.insertCell(5);
+                const deleteCell = row.insertCell(6);
                 const deleteButton = document.createElement('button');
                 deleteButton.innerText = 'Delete';
                 deleteButton.style.backgroundColor = '#f44336'; // Red color
@@ -109,11 +131,28 @@
                 deleteButton.style.border = 'none';
                 deleteButton.style.padding = '5px 10px';
                 deleteButton.style.cursor = 'pointer';
-                deleteButton.style.transition = 'background-color 0.3s'; // Transition effect
                 deleteButton.addEventListener('click', () => {
                     deleteStudent(index); // Pass the index to delete the student
                 });
                 deleteCell.appendChild(deleteButton);
+            });
+
+            // Check if any student needs a payment reminder
+            checkForReminders();
+        }
+
+        // Check if students are due for payment reminders
+        function checkForReminders() {
+            const today = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+            students.forEach(student => {
+                const admissionDate = new Date(student.date);
+                const nextPaymentDate = new Date(admissionDate);
+                nextPaymentDate.setMonth(admissionDate.getMonth() + 1); // One month later
+                const nextPaymentDateString = nextPaymentDate.toISOString().split('T')[0];
+
+                if (today === nextPaymentDateString) {
+                    alert(`Reminder: Student ${student.name} (Seat ${student.seat}) is due for payment on ${today}.`);
+                }
             });
         }
 
@@ -146,10 +185,11 @@
             const mobile = document.getElementById('mobile').value;
             const seat = parseInt(document.getElementById('seat').value);
             const course = document.getElementById('course').value;
+            const shift = course === 'half-time' ? document.getElementById('shift').value : null; // Get shift for half-time students
             const date = document.getElementById('date').value; // Get date from input
 
             // Add student to the list and remove seat from available seats
-            students.push({ name, mobile, seat, course, date });
+            students.push({ name, mobile, seat, course, shift, date });
             seats = seats.filter(s => s !== seat);
 
             // Save updated data to local storage
